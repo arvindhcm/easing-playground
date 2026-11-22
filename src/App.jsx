@@ -4,7 +4,7 @@ import CurveInputs from "./components/CurveInputs.jsx";
 import PresetPicker from "./components/PresetPicker.jsx";
 import PlaybackControls from "./components/PlaybackControls.jsx";
 import CodeExport from "./components/CodeExport.jsx";
-import PositionDemo from "./demos/PositionDemo.jsx";
+import ToggleDemo from "./demos/ToggleDemo.jsx";
 import ToastDemo from "./demos/ToastDemo.jsx";
 import ModalDemo from "./demos/ModalDemo.jsx";
 import ReorderDemo from "./demos/ReorderDemo.jsx";
@@ -12,7 +12,9 @@ import { createBezierEasing } from "./lib/cubicBezier.js";
 import { PRESETS, findMatchingPreset } from "./lib/presets.js";
 import { useLoopingTimeline } from "./lib/useLoopingTimeline.js";
 
-const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const prefersReducedMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+).matches;
 
 export default function App() {
   const [curve, setCurve] = useState(PRESETS[0].curve);
@@ -21,11 +23,14 @@ export default function App() {
   const [restartToken, setRestartToken] = useState(0);
 
   const easing = useMemo(() => createBezierEasing(...curve), [curve]);
-  const { direction, linearProgress } = useLoopingTimeline({ durationMs, isPlaying, restartToken });
+  const { direction, linearProgress } = useLoopingTimeline({
+    durationMs,
+    isPlaying,
+    restartToken,
+  });
 
   const easedProgress = easing(linearProgress);
   const value = direction === "in" ? easedProgress : 1 - easedProgress;
-  const linearValue = direction === "in" ? linearProgress : 1 - linearProgress;
   const activePreset = findMatchingPreset(curve);
 
   const replay = () => {
@@ -41,13 +46,11 @@ export default function App() {
   return (
     <main className="mx-auto max-w-[1180px] px-4 pt-14 pb-16 sm:px-8 max-[560px]:pt-10">
       <header className="max-w-[640px]">
-        <p className="m-0 text-[12px] font-bold uppercase tracking-[0.16em] text-accent-ink">Motion tool</p>
         <h1 className="m-0 mt-2 text-[clamp(32px,5vw,48px)] leading-[1.05] font-bold tracking-[-0.02em]">
-          Easing Playground
+          Transition Playground
         </h1>
         <p className="m-0 mt-4 text-[16px] leading-[1.65] text-muted">
-          Drag the handles to shape a curve. The same curve drives real interface moments — a
-          toast, a modal, a reorder — then copy it straight into your code.
+          Drag the handles to shape a curve.
         </p>
       </header>
 
@@ -59,7 +62,11 @@ export default function App() {
           <CurveEditor
             curve={curve}
             onChange={setCurve}
-            playhead={isPlaying ? { time: linearProgress, progress: easedProgress } : null}
+            playhead={
+              isPlaying
+                ? { time: linearProgress, progress: easedProgress }
+                : null
+            }
           />
           <div className="mt-4">
             <CurveInputs curve={curve} onChange={setCurve} />
@@ -81,7 +88,7 @@ export default function App() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <PositionDemo value={value} linearValue={linearValue} />
+            <ToggleDemo value={value} />
             <ToastDemo value={value} />
             <ModalDemo value={value} />
             <ReorderDemo value={value} />
