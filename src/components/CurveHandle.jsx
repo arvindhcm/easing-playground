@@ -5,7 +5,7 @@ const ARROW_DIRECTIONS = {
   ArrowDown: [0, -1],
 };
 
-export default function CurveHandle({ label, cx, cy, x, y, colorClassName, onPointerDrag, onNudge }) {
+export default function CurveHandle({ label, cx, cy, x, y, colorClassName, onPointerDrag, onNudge, onDragEnd }) {
   const handleKeyDown = (event) => {
     const direction = ARROW_DIRECTIONS[event.key];
     if (!direction) return;
@@ -27,7 +27,12 @@ export default function CurveHandle({ label, cx, cy, x, y, colorClassName, onPoi
       onPointerMove={(event) => {
         if (event.currentTarget.hasPointerCapture(event.pointerId)) onPointerDrag(event);
       }}
+      // Fires on pointer up or cancel, once the drag lets go.
+      onLostPointerCapture={() => onDragEnd?.()}
       onKeyDown={handleKeyDown}
+      onKeyUp={(event) => {
+        if (ARROW_DIRECTIONS[event.key]) onDragEnd?.();
+      }}
     >
       <circle cx={cx} cy={cy} r="20" fill="transparent" />
       <circle

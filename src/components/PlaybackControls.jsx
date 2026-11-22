@@ -1,4 +1,5 @@
-export default function PlaybackControls({ isPlaying, onTogglePlaying, onReplay, durationMs, onDurationChange }) {
+import { memo } from "react";
+function PlaybackControls({ isPlaying, onTogglePlaying, onReplay, durationMs, onDurationChange }) {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
       <div className="flex gap-2">
@@ -6,7 +7,7 @@ export default function PlaybackControls({ isPlaying, onTogglePlaying, onReplay,
           type="button"
           onClick={onTogglePlaying}
           aria-label={isPlaying ? "Pause" : "Play"}
-          className="grid size-9 cursor-pointer place-items-center rounded-full bg-ink text-surface transition-transform active:scale-95"
+          className="grid size-9 cursor-pointer lg:size-8 place-items-center rounded-full border-2 border-ink bg-accent text-white shadow-[2px_2px_0_var(--ink)] transition-transform active:scale-95"
         >
           {isPlaying ? (
             <svg viewBox="0 0 16 16" className="size-3.5 fill-current" aria-hidden="true">
@@ -23,7 +24,7 @@ export default function PlaybackControls({ isPlaying, onTogglePlaying, onReplay,
           type="button"
           onClick={onReplay}
           aria-label="Replay from the start"
-          className="grid size-9 cursor-pointer place-items-center rounded-full border border-border-strong bg-surface text-ink transition-transform active:scale-95"
+          className="grid size-9 cursor-pointer lg:size-8 place-items-center rounded-full border-2 border-ink bg-surface text-ink shadow-[2px_2px_0_var(--ink)] transition-transform active:scale-95"
         >
           <svg viewBox="0 0 16 16" className="size-4 fill-none stroke-current" strokeWidth="1.6" aria-hidden="true">
             <path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9" strokeLinecap="round" />
@@ -41,10 +42,13 @@ export default function PlaybackControls({ isPlaying, onTogglePlaying, onReplay,
           step="50"
           value={durationMs}
           onChange={(event) => onDurationChange(Number(event.target.value))}
-          className="flex-1 cursor-pointer accent-ink"
+          className="flex-1 cursor-pointer accent-accent"
         />
-        <span className="w-[60px] text-right font-mono text-[13px] text-ink">{durationMs}ms</span>
+        <span className="w-[60px] text-right font-mono text-[13px] text-ink lg:text-[12px]">{durationMs}ms</span>
       </label>
     </div>
   );
 }
+
+// Memoized: its props stay the same while the loop animates.
+export default memo(PlaybackControls);

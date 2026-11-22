@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
+/* Monster-trainer theme: sky + grass backdrop, chunky outlined panels, type colours. */
 :root {
-  --bg: #eff0f3;
-  --surface: #fffffe;
-  --surface-alt: #f5f6f8;
-  --ink: #0d0d0d;
-  --ink-soft: #2a2a2a;
-  --muted: rgba(13, 13, 13, 0.55);
-  --border-strong: rgba(13, 13, 13, 0.1);
-  --accent: #ff8e3c;
-  --accent-ink: #7a3d12;
-  --accent-soft: #ffe9d6;
-  --tertiary: #d9376e;
+  --bg: #cdeeff;
+  --surface: #fffdf8;
+  --surface-alt: #eef6fc;
+  --ink: #1b2340;
+  --ink-soft: #2f3a5c;
+  --muted: rgba(27, 35, 64, 0.62);
+  --border-strong: rgba(27, 35, 64, 0.14);
+  --accent: #f25c3b;
+  --accent-ink: #8a2410;
+  --accent-soft: #ffe3d9;
+  --tertiary: #3b8ef0;
+  --electric: #ffcb05;
+  --orb: #7b5cff;
 }
 
 @theme {
@@ -26,13 +29,49 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-tertiary: var(--tertiary);
+  --color-electric: var(--electric);
+  --color-orb: var(--orb);
 
   --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-pixel: "Press Start 2P", ui-monospace, monospace;
+}
+
+/* Game-UI panel: solid outline with a hard offset shadow. */
+@utility panel {
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+}
+
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes drift {
+  from { transform: translateX(-30px); }
+  to { transform: translateX(30px); }
+}
+
+.bob {
+  animation: bob 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.drift {
+  animation: drift 40s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bob,
+  .drift {
+    animation: none;
+  }
 }

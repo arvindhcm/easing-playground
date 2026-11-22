@@ -1,3 +1,4 @@
+import { memo } from "react";
 const FIELDS = [
   { label: "x1", min: 0, max: 1, dotClassName: "bg-accent" },
   { label: "y1", min: -0.6, max: 1.6, dotClassName: "bg-accent" },
@@ -5,7 +6,7 @@ const FIELDS = [
   { label: "y2", min: -0.6, max: 1.6, dotClassName: "bg-tertiary" },
 ];
 
-export default function CurveInputs({ curve, onChange }) {
+function CurveInputs({ curve, onChange }) {
   const updateValue = (index, rawValue) => {
     const parsed = Number.parseFloat(rawValue);
     if (!Number.isFinite(parsed)) return;
@@ -30,10 +31,13 @@ export default function CurveInputs({ curve, onChange }) {
             max={field.max}
             value={curve[index]}
             onChange={(event) => updateValue(index, event.target.value)}
-            className="w-full rounded-lg border border-border-strong bg-surface-alt px-2 py-1.5 font-mono text-[13px] text-ink outline-none transition-colors focus:border-ink/40 focus:bg-surface"
+            className="w-full rounded-lg border border-border-strong bg-surface-alt px-2 py-1.5 font-mono text-[13px] lg:py-1 lg:text-[12.5px] text-ink outline-none transition-colors focus:border-ink/40 focus:bg-surface"
           />
         </label>
       ))}
     </div>
   );
 }
+
+// Memoized: its props stay the same while the loop animates.
+export default memo(CurveInputs);

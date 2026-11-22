@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const HOLD_AFTER_IN_MS = 700;
 const HOLD_AFTER_OUT_MS = 450;
@@ -19,8 +19,11 @@ function frameAt(elapsedMs, durationMs) {
 
 // Loops in → hold → out → hold. The curve isn't a dependency on purpose, so
 // dragging a handle mid-loop updates the motion live instead of restarting it.
-export function useLoopingTimeline({ durationMs, isPlaying, restartToken }) {
+// With `cycleLimit`, it stops after that many cycles and calls `onComplete`.
+export function useLoopingTimeline({ durationMs, isPlaying, restartToken, cycleLimit = null, onComplete }) {
   const [frame, setFrame] = useState(RESTING_FRAME);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (!isPlaying) return undefined;
@@ -30,13 +33,23 @@ export function useLoopingTimeline({ durationMs, isPlaying, restartToken }) {
     let animationFrameId;
 
     const tick = (now) => {
-      setFrame(frameAt((now - startedAt) % cycleMs, durationMs));
+      const elapsedMs = now - startedAt;
+      if (cycleLimit !== null && elapsedMs >= cycleLimit * cycleMs) {
+        setFrame({ direction: "out", linearProgress: 1 });
+        onCompleteRef.current?.();
+        return;
+      }
+      const next = frameAt(elapsedMs % cycleMs, durationMs);
+      // Holds produce the same frame over and over; returning `prev` skips the re-render.
+      setFrame((prev) =>
+        prev.direction === next.direction && prev.linearProgress === next.linearProgress ? prev : next,
+      );
       animationFrameId = requestAnimationFrame(tick);
     };
     animationFrameId = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [durationMs, isPlaying, restartToken]);
+  }, [durationMs, isPlaying, restartToken, cycleLimit]);
 
   return frame;
 }

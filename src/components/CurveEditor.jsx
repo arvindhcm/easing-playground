@@ -1,5 +1,6 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import CurveHandle from "./CurveHandle.jsx";
+import CatchOrb from "../theme/CatchOrb.jsx";
 
 const PLOT_SIZE = 200;
 const PAD_LEFT = 34;
@@ -15,8 +16,9 @@ const toSvgX = (x) => PAD_LEFT + x * PLOT_SIZE;
 const toSvgY = (y) => PAD_Y + (Y_MAX - y) * PLOT_SIZE;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const roundToHundredths = (value) => Math.round(value * 100) / 100;
+const GRID_STEPS = [0.25, 0.5, 0.75];
 
-export default function CurveEditor({ curve, onChange, playhead }) {
+export default function CurveEditor({ curve, onChange, onChangeEnd, playhead }) {
   const svgRef = useRef(null);
   const [x1, y1, x2, y2] = curve;
 
@@ -27,10 +29,14 @@ export default function CurveEditor({ curve, onChange, playhead }) {
     onChange(nextCurve);
   };
 
+  // Map the pointer into viewBox units via the SVG's own transform, so it stays
+  // accurate when the chart is letterboxed to fit a short container.
   const moveHandleToPointer = (handleIndex, event) => {
-    const bounds = svgRef.current.getBoundingClientRect();
-    const svgX = ((event.clientX - bounds.left) / bounds.width) * VIEW_WIDTH;
-    const svgY = ((event.clientY - bounds.top) / bounds.height) * VIEW_HEIGHT;
+    const svg = svgRef.current;
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const { x: svgX, y: svgY } = point.matrixTransform(svg.getScreenCTM().inverse());
     moveHandle(handleIndex, (svgX - PAD_LEFT) / PLOT_SIZE, Y_MAX - (svgY - PAD_Y) / PLOT_SIZE);
   };
 
@@ -42,16 +48,11 @@ export default function CurveEditor({ curve, onChange, playhead }) {
     x2
   )} ${toSvgY(y2)}, ${toSvgX(1)} ${toSvgY(1)}`;
 
-  const gridSteps = [0, 0.25, 0.5, 0.75, 1];
-
-  return (
-    <svg
-      ref={svgRef}
-      viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-      className="block h-auto w-full touch-none select-none"
-      role="group"
-      aria-label="Cubic bezier curve editor"
-    >
+  // Everything except the playhead depends only on the curve (and the handlers
+  // built from it), so it's memoized: while the loop plays, React reuses these
+  // elements and only diffs the playhead.
+  const chartLayers = useMemo(() => (
+    <>
       <defs>
         <pattern id="overshoot-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="6" className="stroke-border-strong" strokeWidth="1.5" />
@@ -68,7 +69,7 @@ export default function CurveEditor({ curve, onChange, playhead }) {
       </text>
 
       <rect x={toSvgX(0)} y={toSvgY(1)} width={PLOT_SIZE} height={PLOT_SIZE} className="fill-surface stroke-border-strong" />
-      {gridSteps.slice(1, -1).map((step) => (
+      {GRID_STEPS.map((step) => (
         <g key={step} className="stroke-border-strong" strokeDasharray="2 4">
           <line x1={toSvgX(step)} y1={toSvgY(0)} x2={toSvgX(step)} y2={toSvgY(1)} />
           <line x1={toSvgX(0)} y1={toSvgY(step)} x2={toSvgX(1)} y2={toSvgY(step)} />
@@ -112,22 +113,11 @@ export default function CurveEditor({ curve, onChange, playhead }) {
         strokeLinecap="round"
       />
       <line x1={VALUE_TRACK_X} y1={toSvgY(0)} x2={VALUE_TRACK_X} y2={toSvgY(1)} className="stroke-ink/15" strokeWidth="4" strokeLinecap="round" />
+    </>
+  ), [curvePath, x1, y1, x2, y2]);
 
-      {playhead && (
-        <g>
-          <line
-            x1={toSvgX(playhead.time)}
-            y1={toSvgY(playhead.progress)}
-            x2={VALUE_TRACK_X}
-            y2={toSvgY(playhead.progress)}
-            className="stroke-ink/25"
-            strokeDasharray="2 3"
-          />
-          <circle cx={toSvgX(playhead.time)} cy={toSvgY(playhead.progress)} r="5" className="fill-ink" />
-          <circle cx={VALUE_TRACK_X} cy={toSvgY(playhead.progress)} r="6" className="fill-accent stroke-surface" strokeWidth="2" />
-        </g>
-      )}
-
+  const handleLayers = useMemo(() => (
+    <>
       <circle cx={toSvgX(0)} cy={toSvgY(0)} r="3.5" className="fill-ink" />
       <circle cx={toSvgX(1)} cy={toSvgY(1)} r="3.5" className="fill-ink" />
 
@@ -140,6 +130,7 @@ export default function CurveEditor({ curve, onChange, playhead }) {
         colorClassName="stroke-accent"
         onPointerDrag={(event) => moveHandleToPointer(0, event)}
         onNudge={(deltaX, deltaY) => nudgeHandle(0, deltaX, deltaY)}
+        onDragEnd={onChangeEnd}
       />
       <CurveHandle
         label="Second control point"
@@ -150,7 +141,37 @@ export default function CurveEditor({ curve, onChange, playhead }) {
         colorClassName="stroke-tertiary"
         onPointerDrag={(event) => moveHandleToPointer(1, event)}
         onNudge={(deltaX, deltaY) => nudgeHandle(1, deltaX, deltaY)}
+        onDragEnd={onChangeEnd}
       />
+    </>
+  ), [x1, y1, x2, y2, onChange, onChangeEnd]);
+
+  return (
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+      className="block h-auto w-full touch-none select-none lg:h-full"
+      role="group"
+      aria-label="Cubic bezier curve editor"
+    >
+      {chartLayers}
+
+      {playhead && (
+        <g>
+          <line
+            x1={toSvgX(playhead.time)}
+            y1={toSvgY(playhead.progress)}
+            x2={VALUE_TRACK_X}
+            y2={toSvgY(playhead.progress)}
+            className="stroke-ink/25"
+            strokeDasharray="2 3"
+          />
+          <circle cx={toSvgX(playhead.time)} cy={toSvgY(playhead.progress)} r="5" className="fill-ink" />
+          <CatchOrb x={VALUE_TRACK_X - 9} y={toSvgY(playhead.progress) - 9} width="18" height="18" />
+        </g>
+      )}
+
+      {handleLayers}
     </svg>
   );
 }
